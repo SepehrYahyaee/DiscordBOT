@@ -131,3 +131,68 @@ now that we have covered almost everything about intents, the last thing to know
 that's all about the intents, come back to this document anytime you forget about the events or anything related to intents, and let's move on to the next chapter of learning how to write your personal discord BOT.
 
 Slash Commands:
+
+Discord allows it's BOT developers to write and register 'Slash Commands' for their BOTs. why does it matter and why is it important? because it is a first-class, much more better way for users to interact with your BOT. rather than casually writing texts (imagine writing 'ping' or 'hey' in chat in order for BOT to do something!), we can now learn how to actually write commands specificly for a BOT and users can use these slash commands with '/' and then they can see all the previously defined commands for BOT to use. we can even implement a /help command to explain the usages of all the other commands...
+
+when you type '/' in discord's chat section in some guild, there pops another section of all available slash commands. by default there are some built-in slash commands for all users to use, for example /kick or /ban or /me ... but when you register commands only for your BOT, whether only for your guild or for all the guilds that use your BOT, there comes a specific section besides Built-In named for your BOT, that lists all the available slash commands that users can use. enough of the explanation of what actually a slash command is, let's move on to the next part.
+
+the procedure of writing, registering, and adding a slash command has different parts. the order of doing them doesn't matter but in order for those commands to work, we must do all of these parts. in it's simplest form, it looks like this:
+
+1) Registering your desired commands (their name + description) to your BOT.
+2) Listening on events specified for when a user uses a slash command: 'interactionCreate'.
+3) checking if the interaction has been created by a BOT, and if so, replying to it with the desired functionality.
+
+this is the most simple form of registering and using slash commands for your BOT. now let's demonstrate it:
+
+first we gotta register our commands. To do so, we need a different file to write the code needed, which I talk about the reason behind it soon. imagine a file named register-commands.js somewhere in your project directory which looks like this:
+
+    const { REST, Routes } = require('discord.js);
+
+    const rest = new REST().setToken(YOUR_BOT_TOKEN);
+
+    // commands you want to register, an array of objects which has a name and description property.
+    // it later will be added to the pop up section in discord as a name and description of the registered command.
+
+    const commands = [
+        { name: 'hey', description: 'Replies with Hey!' },
+        { name: 'shalqam, description: 'Replies with Shalaqatain!' },
+    ];
+
+    // we need to request (PUT method) the discord API to tell them to register these commands on our bot and on our server(s)
+    // to do that, we use the built-in REST class which we made an instance of it earlier to make a put request.
+    // but we wrap it all in a function, and make it an IIFE (or don't if you don't want it doesn't even matter):
+
+    async function registerCommands() {
+        try {
+            console.log(`Registering ${commands.length} slash commands...`);
+
+            const data = await rest.put(
+                Routes.applicationGuildCommands(YOUR_BOT_CLIENT_ID, YOUR_GUILD_ID),
+                { body: commands },
+            );
+
+            console.log(`Successfully registered/added ${data.length} slash commands.`);
+
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    registerCommands(); // call it to work!
+
+because Discord's API has some restrictions as far as I know, about limiting the registration of slash commands, so it's better to not just use this function whenever you run your goddamn BOT. just run it when you add a new command or when you register a new one, otherwise it's not needed and that's why we use another file to write this down. just run this file once before you start your BOT and it's all good to go.
+
+now we have registered our commands, and we can see them in our discord server using '/' and we see a new section for our BOT.
+the next thing to do, is to interact with it, and write the functionality (simple form) for it: (in our app.js or main file)
+
+    client.on('interactionCreate', (interaction) => {
+        
+        // check if the interaction is an slash command: (returns true|false)
+        if (interaction.isChatInputCommand()) {
+            if (interaction.commandName === 'shalqam') interaction.reply('Shalaqatain!'); // check the commandName and reply
+            else if (interaction.commandName === 'hey') interaction.reply('Hey!');
+        } 
+    });
+
+and now we successfully wrote a bunch of code (although it's so fucked up) that registered our slash commands and we can interact with them and respond accordingly too! but there are a lot of better ways to do so, which we are going to discuss.
+remember, anytime you want to register another command you don't to have all the previous ones in your commands object and it's better to remove them (or comment them), however it's not a good way of coding and we are going to talk about it soon enough, but for now let's just accept it.
