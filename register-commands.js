@@ -1,16 +1,20 @@
-const { REST, Routes } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const { REST, Routes} = require('discord.js');
 require('dotenv').config();
 
-const commands = [
-    {
-        name: "help",
-        description: "Replies with Pong!"
-    },
-    {
-        name: "shalqam",
-        description: "Replies with Shalqam"
-    },
-];
+const commands = [];
+
+const commandFiles = fs.readdirSync(path.join(__dirname, 'SlashCommands'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(path.join(__dirname, 'SlashCommands'), file);
+    const command = require(filePath);
+
+    ('data' in command && 'execute' in command) 
+    ? commands.push(command.data.toJSON()) 
+    : console.log(`data or execution function is missing at path: ${filePath}`);
+}
 
 const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN);
 
