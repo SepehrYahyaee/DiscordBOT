@@ -206,3 +206,70 @@ client.on('interactionCreate', (interaction) => {
 
 and now we successfully wrote a bunch of code (although it's so fucked up) that registered our slash commands and we can interact with them and respond accordingly too! but there are a lot of better ways to do so, which we are going to discuss.
 remember, anytime you want to register another command you don't to have all the previous ones in your commands object and it's better to remove them (or comment them), however it's not a good way of coding and we are going to talk about it soon enough, but for now let's just accept it.
+
+Imagine, having like a hundred slash commands for your BOT. It would be a shit pile of code for sure to develop that BOT in this way, no doubt! honestly, even with just 2 or 3 commands I feel like a shit even attempting to write like this, for real. It needs to be modular and also dynamic. Here's the stuff I am going to do in order to make this code much more better and much more efficient than this shit:
+
+- Slash commands need to be in their respective seperate folder, each of them have their own file containing of their own information.
+- Event listening act on *interactionCreate* should be dynamic, and by that, I mean that it shouldn't be like a hundred if/else expressions just to see which slash command is being used and then respond accordingly! It should be dynamic, we gotta provide a way for writing the code, to execute the needed function according to the name of the command automatically, and not using the if/else statements anymore.
+- When seperating slash commands, we need to have a way to grab all of them, reading all of them from their different files and insert all of them in their correct format, both when registering them in *register-commands.js* file and when try to handle them, which we talk about it later on.
+
+I created a *SlashCommands* folder which contains of all the slash commands provided. In order to make slash commands this way, the discord.js package has provided us with a class named `SlashCommandBuilder` and we can import it easily. then we can make a simple slash command with it by chaining methods like below:
+
+```
+const { SlashCommandBuilder } = require('discord.js');
+
+const command = new SlashCommandBuilder()
+    .setName('shalqam')
+    .setDescription('Replies with Shalaqatain!');
+```
+
+> [!NOTE]
+> There are rules for naming slash commands for your BOT which we have to obey, otherwise it wouldn't work as expected. Names of slash commands have to be **only lower-case letters** ranging from **1 to 32 characters** and not containing any symbols or any spaces, although using **Hyphen (-) or Underline(_) is okay**.
+
+After building our slash command, we need to have a function for it, which executes everytime this command gets called:
+
+```
+async execute(interaction) {
+    await interaction.reply('Shalaqatain!'); // your desired functionality for this command.
+};
+```
+
+Since we're going to export these and use them elsewhere, it's better to make them both, the command object itself and it's execution function properties of the *module.exports* so that we can easily later use *require* on them. So the final look of a single slash command file is:
+
+```
+const { SlashCommandBuilder } = require('discord.js');
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('shalqam')
+        .setDescription('Replies with Shalaqatain!'),
+
+    async execute(interaction) {
+        await interaction.reply('Shalaqatain!'); // or any desired functionality.
+    }
+};
+```
+
+With that being said, we create a file for each slash command and write their information following the model above, easily. Next, I am going to make the act of registering commands (in the register-commands.js file) dynamic, since we're going to define all of our commands in their seperate folder, we need a way to grab all the information and pass it to the commands list there. we can use built-in node modules such as **node:fs** and **node:path** in order to do that, like this:
+
+```
+const fs = require('fs');
+const path = require('path');
+
+const commands = [];
+
+const commandFiles = fs.readdirSync(path.join(__dirname, 'SlashCommands')) // In my case, I named it SlashCommands folder.
+
+for (const file of commandFiles) {
+    const filePath = path.join(path.join(__dirname, 'SlashCommands'), file);
+    const command = require(filePath);
+
+    ('data' in command && 'execute' in command) 
+    ? commands.push(command.data.toJSON()) 
+    : console.log(`data or execution function is missing at path: ${filePath}`);
+};
+```
+
+And after that, using the same *registerCommands* function and pass the commands to it. In this state of program, commands are now being registered dynamically and we no longer need to manually insert/delete them from the commands array. Also all of the commands are now modular and are in their respective file in their respective folder. Whenever we need to update them or make any changes overally, we can go their folder and their not just sitting in the middle of a file for god sake. The last thing we need to do right now, is to make a way to also dynamically listen to all of the commands altogether and get rid of the if/else statements.
+
+Creating a Map:
