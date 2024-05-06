@@ -1,10 +1,10 @@
-Here goes my learning process to write a discord BOT app, using *discord.js* package.
+Here goes my learning process to write a discord BOT app, using *discord.js* package. This is a documentation for my own future self, feel free to use it if it suits your needs though.
 
 # Getting Started
 
 first of all, in order to create a discord BOT, you need to do it inside of the discord's website panel, simply name your bot and add it to a server of your choice, and it also has a token which is regeneratable. install the package needed and go on into your code editor. the simplest form of connection between you and your BOT can be like this:
 
-```
+```js
 const { Client, GatewayIntentBits } = require('discord.js');
 
 const client = new Client(
@@ -116,7 +116,7 @@ so this was the list for all available intents and their related events which ou
 
 now that we have covered almost everything about intents, the last thing to know is that the discord.js module provided another way of adding (or removing) intents to our client, using "IntentsBitField" Class which has a "Flags Property" which inside it, we have all the intents available and we can use that like the code below instead of manually assigning intents:
 
-```
+```js
 const { Client, IntentsBitField } = require('discord.js');
 
 const myIntents = new IntentsBitField([
@@ -152,7 +152,7 @@ this is the most simple form of registering and using slash commands for your BO
 
 first we gotta register our commands. To do so, we need a different file to write the code needed, which I talk about the reason behind it soon. imagine a file named register-commands.js somewhere in your project directory which looks like this:
 
-```
+```js
 const { REST, Routes } = require('discord.js);
 
 const rest = new REST().setToken(YOUR_BOT_TOKEN);
@@ -193,7 +193,7 @@ because Discord's API has some restrictions as far as I know, about limiting the
 now we have registered our commands, and we can see them in our discord server using '/' and we see a new section for our BOT.
 the next thing to do, is to interact with it, and write the functionality (simple form) for it: (in our app.js or main file)
 
-```
+```js
 client.on('interactionCreate', (interaction) => {
         
     // check if the interaction is an slash command: (returns true|false)
@@ -215,7 +215,7 @@ Imagine, having like a hundred slash commands for your BOT. It would be a shit p
 
 I created a *SlashCommands* folder which contains of all the slash commands provided. In order to make slash commands this way, the discord.js package has provided us with a class named `SlashCommandBuilder` and we can import it easily. then we can make a simple slash command with it by chaining methods like below:
 
-```
+```js
 const { SlashCommandBuilder } = require('discord.js');
 
 const command = new SlashCommandBuilder()
@@ -228,7 +228,7 @@ const command = new SlashCommandBuilder()
 
 After building our slash command, we need to have a function for it, which executes everytime this command gets called:
 
-```
+```js
 async execute(interaction) {
     await interaction.reply('Shalaqatain!'); // your desired functionality for this command.
 };
@@ -236,7 +236,7 @@ async execute(interaction) {
 
 Since we're going to export these and use them elsewhere, it's better to make them both, the command object itself and it's execution function properties of the *module.exports* so that we can easily later use *require* on them. So the final look of a single slash command file is:
 
-```
+```js
 const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
@@ -252,7 +252,7 @@ module.exports = {
 
 With that being said, we create a file for each slash command and write their information following the model above, easily. Next, I am going to make the act of registering commands (in the register-commands.js file) dynamic, since we're going to define all of our commands in their seperate folder, we need a way to grab all the information and pass it to the commands list there. we can use built-in node modules such as **node:fs** and **node:path** in order to do that, like this:
 
-```
+```js
 const fs = require('fs');
 const path = require('path');
 
@@ -273,3 +273,63 @@ for (const file of commandFiles) {
 And after that, using the same *registerCommands* function and pass the commands to it. In this state of program, commands are now being registered dynamically and we no longer need to manually insert/delete them from the commands array. Also all of the commands are now modular and are in their respective file in their respective folder. Whenever we need to update them or make any changes overally, we can go their folder and their not just sitting in the middle of a file for god sake. The last thing we need to do right now, is to make a way to also dynamically listen to all of the commands altogether and get rid of the if/else statements.
 
 Creating a Map:
+
+We need to find a way to dynamically listen on all slash commands that there is, rather than using if/else statements which make our code's readability a lot worse. Here's the catch, the *interaction* which we pass to the *execute* function of the slash command, has access to the *client's instance* through `interaction.client`. If we have a property on the client, let's say a map object, which has the name of the slash commands as the first element, and their whole object containing data and execute function as the second element, mapped to each other, we can access through all of the slash commands names and their whole objects (lets say we named the property on client: `client.commands`), whenever someone uses a command and we can respond accordingly by using this property and access to their execute function, it would be something like this:
+
+```js
+const fs = require('fs');
+const path = require('path');
+const { Collection } = require('discord.js');
+
+client.commands = new Collection(); // discord.js provided us with a Collection class which extends the original Map.
+
+const commandFolders = fs.readdirSync(path.join(__dirname, 'SlashCommands'));
+
+for (const file of commandFolders) {
+    const filePath = path.join(path.join(__dirname, 'SlashCommands'), file);
+    const command = require(filePath);
+
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command); // set: [commandName, commandObject]
+    } else {
+        console.log(`data or execute property is missing at file ${filePath}`);
+    }
+};
+```
+
+The commands above is used to store all the slash commands available to the `client.commands` property effectively. Then we can listen dynamically on all slash commands like below:
+
+```js
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return; // if the interaction wasn't a slash command, ignore it!
+
+    // since we have access to interaction's name via interaction.commandName, so we use it to get it's object from the Map.
+    const command = interaction.client.commands.get(interaction.commandName);
+    if (!command) {
+        console.log(`such slash command doesn\'t exist: /${interaction.commandName}`);
+        return;
+    }
+
+    try {
+        await command.execute(interaction); // run the commands execute function if available.
+    } catch (error) {
+        console.error(error); // log any errors if occured.
+
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+		}
+    }
+});
+```
+
+And with this way of coding, we have managed to listen on all slash commands dynamically without the need of if/else statements. All the steps are now done, run the `register-commands.js` file once to load all the commands to your BOT and start using them.
+
+> [!Tip]
+> You can manage to make your **Slash Commands** folder tidier than it is by grouping a bunch of slash commands together. For example, we might have some slash commands that are utilities, some other slash commands might be about managing, some others may be about role activites and many other stuff. You can make folders for them and write your slash commands file inside each one of them, but remember that you need to change the code for command handling because it has to read all the files within the folders from now on. It's not that big of a deal, but It was worth noting, for the sake of more modular coding. (damn, it has a rhyme)
+
+We will know more about slash commands and the options/choices and other stuff they can get. For now, let's move on to the next part.
+
+### Event Handling:
+
