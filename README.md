@@ -1,6 +1,6 @@
 Here goes my learning process to write a discord BOT app, using *discord.js* package. This is a documentation for my own future self, feel free to use it if it suits your needs though.
 
-# Getting Started with Boilerplate of the project
+# Getting Started: Boilerplate
 
 first of all, in order to create a discord BOT, you need to do it inside of the discord's website panel, simply name your bot and add it to a server of your choice, and it also has a token which is regeneratable. install the package needed and go on into your code editor. the simplest form of connection between you and your BOT can be like this:
 
@@ -136,7 +136,7 @@ client.login(YOUR_DISCORD_BOT_TOKEN) // works the same.
 
 that's all about the intents, come back to this document anytime you forget about the events or anything related to intents, and let's move on to the next chapter of learning how to write your personal discord BOT.
 
-## Slash Commands:
+## Slash Commands
 
 Discord allows it's BOT developers to write and register **Slash Commands** for their BOTs. why does it matter and why is it important? because it is a first-class, much more better way for users to interact with your BOT. rather than casually writing texts (imagine writing 'ping' or 'hey' in chat in order for BOT to do something!), we can now learn how to actually write commands specificly for a BOT and users can use these slash commands with */* and then they can see all the previously defined commands for BOT to use. we can even implement a /help command to explain the usages of all the other commands...
 
@@ -272,7 +272,7 @@ for (const file of commandFiles) {
 
 And after that, using the same *registerCommands* function and pass the commands to it. In this state of program, commands are now being registered dynamically and we no longer need to manually insert/delete them from the commands array. Also all of the commands are now modular and are in their respective file in their respective folder. Whenever we need to update them or make any changes overally, we can go their folder and their not just sitting in the middle of a file for god sake. The last thing we need to do right now, is to make a way to also dynamically listen to all of the commands altogether and get rid of the if/else statements.
 
-Creating a Map:
+**Creating a Map**:
 
 We need to find a way to dynamically listen on all slash commands that there is, rather than using if/else statements which make our code's readability a lot worse. Here's the catch, the *interaction* which we pass to the *execute* function of the slash command, has access to the *client's instance* through `interaction.client`. If we have a property on the client, let's say a map object, which has the name of the slash commands as the first element, and their whole object containing data and execute function as the second element, mapped to each other, we can access through all of the slash commands names and their whole objects (lets say we named the property on client: `client.commands`), whenever someone uses a command and we can respond accordingly by using this property and access to their execute function, it would be something like this:
 
@@ -331,7 +331,7 @@ And with this way of coding, we have managed to listen on all slash commands dyn
 
 We will know more about slash commands and the options/choices and other stuff they can get. For now, let's move on to the next part.
 
-### Event Handling:
+### Event Handling
 
 If you understood the pattern and approach we used to make the slash commands registration and handling both dynamic and also modular, It will be all good from now on because we're going to use the same approach to make our event listening process also modular. In order to do that, we make a folder named `events` and in that, we list our desired events each in their own file, and the form is similar to the slash commands, like below: (for example, the 'ready' event.)
 
@@ -365,5 +365,53 @@ This dynamic events reader works for all the events that you listen on, in their
 > [!IMPORTANT]
 > This is exactly the ***Boilerplate*** of the project, and it is good to make a way, a CLI or something similar for ourselves to not write all of this code again for all the client's we are developing. Note to future self: develop a way to generate these boilerplate stuff, and not just write it from scratch everytime. Maybe even build a framework on top of it!
 
-## Slash Commands Options and Details
+# Slash Commands Details
 
+## Different Responses
+
+There are different response methods to use when working with slash commands and the interaction object they get. Using any of these response methods informs Discord that our BOT has received the interaction and responded, and actually forces this mechanism because it wants to make sure all of the slash commands have good UX. If BOT fails to respond properly, then the failure message is going to be shown by Discord itself even if the BOT is doing some other jobs other than responding. So it's important to use the various response methods which we are going to discuss when working with slash commands. Different responses are:
+
+1. Simple response using the `.reply()` method.
+2. Ephemeral response using `{ ephemeral: true }` in interaction different response objects.
+3. Editing response using `.editReply()` method.
+4. Deferred response using `.deferReply()` method.
+5. Follow-up response using `.followUp()` method.
+6. Fetch/Delete responses using `.fetchReply()`/`deleteReply()` methods.
+7. Localized responses using `intereaction.locale` property.
+
+### Simple Response
+As it's name is showing, it is the most simple way to respond and in fact we used it in the examples too. This method acknowledges the interaction and responds with the response defined in it. The token for this interaction is only valid for **3 seconds** and this means that we only got 3 seconds to respond when an interaction is received: `interaction.reply('Hi');`
+
+### Ephemeral Response
+It is not required at all times, that all the members of a channel or the ones that has access to it see a response that a BOT provides when a user uses a slash command. Sometimes we need an answer to be shown to the user who used the command himself/herself, and not everyone. To do that, response methods can be customized to have an option to respond only for the user who used the command, like this: `interaction.reply({ content: 'Hi', ephemeral: true });` by making the ephemeral flag true inside the reply object.
+
+### Editing Response
+Sometimes you need to edit the response you have previously provided. After the initial 3 seconds of time that you have to respond, if you happen to respond properly, then the token for updating or editing your response is going to be valid for another **15 minutes**, meaning that you can edit your message in the next 15 minutes. The result would be the same message but edited, not creating a new one: 
+
+```js
+interaction.reply('Hi');
+// wait some seconds or minutes less than 15 minutes.
+interaction.editReply('Hello');
+```
+
+### Deferred Response
+As you already know, you only have 3 seconds to respond to an interaction but what if the thing you need to do to answer to the interaction takes more than 3 seconds of time? What if you need to fetch an API in order to answer? In this times we gotta use deferred response. when you use `interaction.deferReply();` it makes the app show `<application> is thinking...` message and it counts as an initial response which satisfies the 3 second time. Then we can compute our response and when the answer is ready, change it with `.editReply()` method or a FollowUp which we are going to discuss next. Also note that you can make the answer ephemeral in these respond methods too, but for editing or following up, **ephemeral state can not be changed once done**.
+
+### Follow-Up Response
+You can use the `.editReply()` method to edit your answer but what if you responded and then after some time you want to respond again? In these situations we use the `.followUp()` method of the interaction after the initial response which replies to the previous response that BOT has provided, can be ephemeral too, and when used after `deferReply()` it changes the `<application> is thinking...` state as an edit, and wouldn't reply to it.
+
+> [!Note]
+> We can use the form **\[text](link)** in our response messages to send a link.
+
+### Fetch/Delete Response
+There are ways provided to Delete a reply after replying, or fetch the whole message object to work on it:
+
+```js
+const message = interaction.fetchReply();
+interaction.deleteReply();
+```
+
+### Localized Response
+Each interaction has a property named `interaction.locale` which stores the data of the user's local language. We can fetch this information to know what language an specific user is using and respond accordingly.
+
+This was all about the different ways to respond and the properties to use in order to have a better response. Use them as needed.
