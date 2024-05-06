@@ -19,66 +19,27 @@ client.commands = new Collection();
 
 const commandFiles = fs.readdirSync(path.join(__dirname, 'SlashCommands'));
 
+// Slash Commands dynamic reader
 for (const file of commandFiles) {
     const filePath = path.join(path.join(__dirname, 'SlashCommands'), file);
     const command = require(filePath);
 
-    if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
-    } else {
-        console.log(`data or execution function is missing from slash command located at:
-        ${filePath}`);
-    };
+    ('data' in command && 'execute' in command)
+    ? client.commands.set(command.data.name, command)
+    : console.log(`data or execution function is missing from slash command located at: ${filePath}`);
+    
 };
 
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+const eventFiles = fs.readdirSync(path.join(__dirname, 'events'));
 
-    const command = interaction.client.commands.get(interaction.commandName);
+// Events dynamic reader
+for (const file of eventFiles) {
+    const filePath = path.join(path.join(__dirname, 'events'), file);
+    const event = require(filePath);
 
-    if (!command) {
-        console.log(`slash command with the given name ${interaction.commandName} doesn\'t exist.`);
-        return;
-    };
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(error);
-
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-		}
-    }
-});
-
-client.on('ready', () => {
-    console.log('bot is ready!');
-})
-
-client.on('messageCreate', (message) => {
-    if (message.author.bot) {
-        return;
-    } else {
-        if (message.content === 'Hello') {
-            message.reply({
-                content: `Hello ${message.author.globalName}`
-            });
-        }
-    }
-});
-
-client.on('messageUpdate', (message) => {
-    console.log('updated message is: ', message.reactions.message.content);
-    console.log('last message was: ', message.content);
-});
-
-client.on('guildMemberAdd', (member) => {
-    member.send({
-        content: `Welcome ${member.user.globalName} e bache Koni`
-    })
-});
+    (event.once)
+    ? (client.once(event.name, (...args) => event.execute(...args)))
+    : (client.on(event.name, (...args) => event.execute(...args)));
+}
 
 client.login(process.env.DISCORD_BOT_TOKEN);

@@ -136,7 +136,7 @@ client.login(YOUR_DISCORD_BOT_TOKEN) // works the same.
 
 that's all about the intents, come back to this document anytime you forget about the events or anything related to intents, and let's move on to the next chapter of learning how to write your personal discord BOT.
 
-## Slash Commands:
+# Slash Commands:
 
 Discord allows it's BOT developers to write and register **Slash Commands** for their BOTs. why does it matter and why is it important? because it is a first-class, much more better way for users to interact with your BOT. rather than casually writing texts (imagine writing 'ping' or 'hey' in chat in order for BOT to do something!), we can now learn how to actually write commands specificly for a BOT and users can use these slash commands with */* and then they can see all the previously defined commands for BOT to use. we can even implement a /help command to explain the usages of all the other commands...
 
@@ -331,5 +331,33 @@ And with this way of coding, we have managed to listen on all slash commands dyn
 
 We will know more about slash commands and the options/choices and other stuff they can get. For now, let's move on to the next part.
 
-### Event Handling:
+# Event Handling:
 
+If you understood the pattern and approach we used to make the slash commands registration and handling both dynamic and also modular, It will be all good from now on because we're going to use the same approach to make our event listening process also modular. In order to do that, we make a folder named `events` and in that, we list our desired events each in their own file, and the form is similar to the slash commands, like below: (for example, the 'ready' event.)
+
+```js
+module.exports = {
+    name: 'ready',
+    once: true,
+    execute(client) {
+        console.log(`The bot ${client.user.tag} is ready!`);
+    }
+};
+```
+
+And then we need to make events able to being read dynamically in our main file, similar to slash commands:
+
+```js
+const eventsFiles = fs.readdirSync(path.join(__dirname, 'events'));
+
+for (const file of eventsFiles) {
+    const filePath = path.join(path.join(__dirname, 'events'), file);
+    const event = require(filePath);
+
+    (event.once)
+    ? client.once(event.name, (...args) => event.execute(...args))
+    : client.on(event.name, (...args) => event.execute(...args));
+}
+```
+
+This dynamic events reader works for all the events that you listen on, in their respective file in events folder. From now on it is better to write your desired events to listen, in `events` folder and in their own file. You can see other examples in the code too. With these approaches, our code is much more modular and it's readability has been improved a lot. Now we're talking.
