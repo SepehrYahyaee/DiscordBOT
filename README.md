@@ -415,3 +415,147 @@ interaction.deleteReply();
 Each interaction has a property named `interaction.locale` which stores the data of the user's local language. We can fetch this information to know what language an specific user is using and respond accordingly.
 
 This was all about the different ways to respond and the properties to use in order to have a better response. Use them as needed.
+
+## Options & Choices
+
+### What are these?
+
+The previous ways of making a slash command were all simple ones, just a name and a description. We can do more, like adding options and choices for those options to our slash commands. First we start by explaining how to add options in the old way before refactoring our code to the modular way. Now before going that way, what is an option? **Options are for times that your slash command needs an input (optional or not) to work on, like an argument to the function! Choices are for times when you want to define predetermined values for this options**. That simple. Now, remember how we used to write slash commands? 
+
+### Bad way
+
+It was like this before making it look fancy:
+
+```js
+const commands = [
+    {
+        name: "add",
+        description: "Adds two numbers!",
+        options: [
+            {
+                name: "firstNumber", description: "The first number!",
+            },
+            {
+                name: "secondNumber", description: "The second number!",
+            },
+        ];
+    };
+];
+```
+
+Now we just added two option inputs to our command `/add`. But it's not so cool. First of all, the code is so messy and second, user can just input string or boolean or whatever the hell he/she wants to this command, and worse than that they can even not input anything at all and the command would be fine! We can add options for those too of course like:
+
+```js
+const { ApplicationCommandOptionType } = require('discord.js');
+
+const commands = [
+    {
+        name: "add",
+        description: "Adds two numbers!",
+        options: [
+            {
+                name: "firstNumber", description: "The first number!", type: ApplicationCommandOptionType.Number, required: true,
+            },
+            {
+                name: "secondNumber", description: "The second number!", type: ApplicationCommandOptionType.Number, required: true,
+            },
+        ];
+    };
+];
+```
+
+This way, now both commands use the `required` option which make the user have to input them, and then we assigned type to both of them, `Number type` which makes the user to input only numbers. We can collect those received inputs in our execute function by reaching `interaction.options.get('optionName')` and do whatever the hell we want with them, just look for their types. Now for having predetermined values for users to choose from which pops up in the Discord's interface, we must add choices to our options like this:
+
+```js
+const { ApplicationCommandOptionType } = require('discord.js');
+
+const commands = [
+    {
+        name: "add",
+        description: "Adds two numbers!",
+        options: [
+            {
+                name: "firstNumber", description: "The first number!", type: ApplicationCommandOptionType.Number, required: true, choices: [
+                    { name: 'one', value: 1}, { name: 'two', value: 2},
+                ]
+            },
+            {
+                name: "secondNumber", description: "The second number!", type: ApplicationCommandOptionType.Number, required: true, choices: [
+                    { name: 'one', value: 1}, { name: 'two', value: 2},
+                ]
+            },
+        ];
+    };
+];
+```
+
+Now we've defined two choices for each option of the `/add` command. User can choose between `one` and `two` and the value of them will be replaced in options position. Note that once you choose choices for an input, the only valid inputs from that moment on would be only from the choices list not anything else, take care. This was the old way of adding options and choices and retreiving them in the execute function of those commands. Now let's learn the new fancy way doing so and it's way better code styling and helpful features.
+
+### Good way
+
+We make slash commands, simple ones, using the `SlashCommandBuilder` class provided in *discord.js* package, like:
+
+```js
+const { SlashCommandBuilder } = require('discord.js');
+
+const data = new SlashCommandBuilder()
+    .setName('hi')
+    .setDescription('Replies with Hello')
+```
+
+Now you know the meaning of options and choices. For adding them using the new way we gotta use the different methods that the package provided us and chain them. Different methods for input options that also has specific types in them are:
+- `addStringOption()` for string input option.
+- `addNumberOption()` for number input option (integers and decimals).
+- `addIntegerOption()` for integer input option.
+- `addBooleanOption()` for true/false input option.
+
+- `addUserOption()` for userId (id) input option or select from a list.
+- `addChannelOption()` for channelId (id) input option or select from a list.
+- `addRoleOption()` for role (id) input option or select from a list.
+- `addMentionableOption()`
+
+- `addAttachmentOption()` for uploading file.
+
+- `addSubCommand()` 
+- `addSubCommandGroup()`
+
+Using any of them doesn't make a difference, they all are methods that accept a callback with a single option argument, like below. Remember that options need name and description here too, only types are checked with the method and required flag also has a method which you will see here too. (`setRequired(true|false)`)
+
+```js
+const { SlashCommandBuilder } = require('discord.js');
+
+const data = new SlashCommandBuilder()
+    .setName('add')
+    .setDescription('Adds two numbers.')
+    .addNumberOption(option => option.setName('firstNumber').setDescription('The first number.')).setRequired(true)
+    .addNumberOption(option => option.setName('secondNumber').setDescription('The second number.')).setRequired(true)
+```
+
+Now we have successfully made options for the `/add` slash command. To add choices to this options, me do like this:
+
+```js
+const { SlashCommandBuilder } = require('discord.js');
+
+const data = new SlashCommandBuilder()
+    .setName('add')
+    .setDescription('Adds two numbers.')
+    .addNumberOption(option => 
+        option.setName('firstNumber')
+        .setDescription('The first number.'))
+        .setRequired(true)
+        .addChoices(
+            { name: 'one', value: 1},
+            { name: 'two', value: 2},
+        )
+    .addNumberOption(option => 
+        option.setName('secondNumber')
+        .setDescription('The second number.'))
+        .setRequired(true)
+```
+
+And finally we added two choices for our first option of the `/add` slash command. There are some more things to know. We can have more validation to the type and some more things after initializing:
+- We can use `.setMaxLength()` and `setMinLength()` for string types to specify their length range as chained methods.
+- We can use `.setMaxValue()` and `setMinValue()` for integer and number types to specify their min/max values.
+- We can use `addChannelTypes()` to add restrictions to type of the channels that user choose from options, like `ChannelType.GuildText` choice.
+
+There are more things to know, about `addSubCommand()` and `addSubCommandGroup()` stuff and also `localizations` which we talk about later on. We have learned how to add options and choices to our slash commands. Now we move to the next part on how to retrieve these data using the new way in our execution functions.
